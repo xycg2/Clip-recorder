@@ -1,0 +1,101 @@
+# ClipWatcher
+
+**Automatically find and clip interesting moments from Twitch and YouTube livestreams.**
+
+ClipWatcher is a Python project that monitors Twitch and YouTube livestreams and automatically saves potentially interesting moments.
+
+The idea is simple: instead of spending hours watching a stream to find good moments, ClipWatcher does the monitoring for you. It watches live chat activity, listens for changes in the stream's audio, and optionally uses AI to understand what's happening on screen and in the conversation. When it detects a moment worth saving, it automatically cuts the footage into a video clip.
+
+## Features
+
+- **Twitch and YouTube support:** Monitor livestreams on both platforms.
+- **Automatic recording:** Records streams in the background using Streamlink, yt-dlp and FFmpeg.
+- **Chat spike detection:** Detects sudden increases in chat activity compared to the channel's normal message rate.
+- **Audio analysis:** Monitors stream volume and detects unusually loud moments.
+- **Combined detection:** Uses chat activity and audio together to find and better time potential highlights.
+- **AI highlight detection (NEW):** Optional Whisper transcription, GPT-4V vision analysis, and chat sentiment analysis to find moments chat alone misses.
+- **Automatic clipping:** Creates clips whenever an interesting moment is detected.
+- **Multiple clip lengths:** Saves different versions of the same moment with configurable durations.
+- **Optional captions:** Uses whisper.cpp to generate subtitles and burn them directly into clips.
+- **Multiple channels:** Monitor several Twitch and YouTube channels at the same time.
+- **Automatic recovery:** Restarts individual channel watchers if they unexpectedly stop.
+- **Moment ratings:** Gives detected moments a TOP, GOOD or OK rating based on chat and audio activity.
+- **Clip organisation:** Automatically organises clips into folders and keeps a CSV file with information about every saved moment.
+- **Streamer attribution:** Generates a text file alongside each clip containing the original stream link and credit information.
+
+## How it works
+
+ClipWatcher runs several processes at the same time, each responsible for a different part of the system.
+
+1. **Recording:** When a channel goes live, ClipWatcher starts recording it in small 10-second video segments.
+2. **Chat monitoring:** It connects to Twitch chat or reads YouTube live chat and keeps track of incoming messages.
+3. **Detecting spikes:** It calculates the channel's normal chat activity and looks for sudden increases in message frequency.
+4. **Audio monitoring:** It analyses the stream's audio to detect moments that are significantly louder than usual.
+5. **Finding the moment:** It combines chat and audio information to identify interesting moments and improve clip timing, since chat reactions often happen a few seconds after the actual event.
+6. **AI analysis (NEW):** Optional background analysis using Whisper (audio transcription), GPT-4V (visual frames), and transformer models (chat sentiment) to detect highlights.
+7. **Creating clips:** It extracts the relevant footage and saves it as an MP4 file in the configured lengths.
+8. **Organising everything:** It saves the clips alongside chat logs, attribution files and a CSV index containing information about each detected moment.
+
+## Detection methods
+
+ClipWatcher uses multiple ways to detect interesting moments.
+
+### Chat detection
+
+It monitors how many messages are being sent over a 10-second period and compares that number with the channel's average activity over the previous five minutes.
+
+For example, if a channel normally gets around 4 messages every 10 seconds but suddenly gets 12, ClipWatcher recognises this as a potential spike and starts processing that moment.
+
+### Audio detection
+
+It also monitors the stream's audio volume and compares it with the normal volume level.
+
+This helps identify loud moments that chat might not react to, which can be particularly useful for smaller channels.
+
+Audio analysis also helps improve clip timing. Since viewers usually react after something happens, ClipWatcher can look backwards from a chat spike to find the actual moment that triggered the reaction.
+
+The two detection methods can also work independently, allowing the system to clip unusually loud moments even when chat activity doesn't increase.
+
+### AI highlight detection (NEW, optional)
+
+When enabled with `--ai`, ClipWatcher adds three AI analyzers running in a background thread:
+
+1. **Audio AI (Whisper):** Transcribes stream audio every 10s segment. Detects hype keywords (pog, insane, clutch, let's go...), laughter (haha, lol, emoji), and energy spikes.
+2. **Visual AI (GPT-4V):** Sends 1 frame every N seconds to a vision model. Detects big plays, kills, clutch moments, funny reactions, visual gags, victory screens.
+3. **Chat AI (Sentiment):** Runs sentiment analysis on chat messages. Detects velocity spikes, positive sentiment bursts, emote density, clip request keywords.
+
+These signals feed into a **fusion scorer** that combines them with the existing chat/audio signals into a 0-10 score. When the score exceeds the threshold (default 6.5), a clip is created automatically with AI-generated title, description, and metadata.
+
+## Output
+
+Clips are automatically organised into folders by channel and date.
+
+For each detected moment, ClipWatcher can generate:
+
+- MP4 video clips in different lengths.
+- Optional captioned versions of clips.
+- Text files containing the original stream link and streamer credit.
+- AI-enhanced metadata: `_meta.json` with full analysis, `credit.txt` with AI title/description/score breakdown.
+- A CSV file containing detection statistics, ratings and clip locations.
+- Logs of the monitored livestream's chat.
+
+## Technologies used
+
+- **Python:** Main application, monitoring and detection logic.
+- **FFmpeg:** Recording, audio analysis and video processing.
+- **Streamlink:** Twitch livestream recording.
+- **yt-dlp:** YouTube livestream recording and chat extraction.
+- **Twitch IRC:** Read-only Twitch chat connection.
+- **whisper.cpp:** Optional speech transcription and subtitle generation.
+- **openai-whisper (NEW):** AI audio transcription and analysis.
+- **OpenAI GPT-4V (NEW):** AI visual frame analysis.
+- **HuggingFace Transformers (NEW):** AI chat sentiment analysis.
+- **PyTorch (NEW):** ML model runtime.
+
+## Project goal
+
+I built ClipWatcher to make finding interesting livestream moments easier and less time-consuming.
+
+Rather than relying on someone to watch an entire stream, it uses audience reactions, audio activity, and optionally AI understanding to automatically find moments that might be worth clipping.
+
+The aim is to have it run in the background, monitor multiple channels and build a collection of highlights without needing constant manual input.

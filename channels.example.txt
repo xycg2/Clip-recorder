@@ -1,0 +1,15 @@
+# ClipWatcher Channel Configuration
+# One streamer per line. Lines starting with # are ignored.
+
+# TWITCH: Just the username (from twitch.tv/username)
+# xqc
+# kaicenat
+# shroud
+
+# YOUTUBE: Channel's /live URL (not video URL, not homepage)
+# https://www.youtube.com/@SomeStreamer/live
+# https://www.youtube.com/@AnotherCreator/live
+
+# Examples:
+# xqc
+# https://www.youtube.com/@Markiplier/live

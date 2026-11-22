@@ -1,0 +1,590 @@
+=====================================================================
+  CLIP WATCHER - SETUP GUIDE
+  Auto-clips Twitch and YouTube live streams wherever chat goes crazy,
+  while you sleep.
+=====================================================================
+
+WHAT'S IN THIS FOLDER
+---------------------
+  clipwatcher.py     The program itself. Don't edit it, it just needs to be here.
+  channels.txt       The streamers to watch. One per line (Twitch name
+                     or YouTube link).
+  start-all.bat      Double-click: watches every channel in channels.txt
+                     (double-clicking clipwatcher.py does the same).
+  start-one.bat      Double-click: asks for one channel and watches it.
+  SETUP GUIDE.txt    This file.
+  HANDOFF-FOR-AI.md  Give this to an AI assistant if you need help.
+
+
+=====================================================================
+  PART 1 - COPY THIS FOLDER TO YOUR DESKTOP PC
+=====================================================================
+
+1. Copy this whole "clip-watcher" folder to a USB stick, Google Drive,
+   Dropbox, or anything else that gets it onto the PC.
+2. On the PC, put it somewhere simple: C:\clip-watcher
+
+   (Avoid OneDrive-synced folders like Documents. Clips are big and
+   OneDrive will keep trying to upload them.)
+
+
+=====================================================================
+  PART 2 - INSTALL THE TOOLS (one time only, about 5 minutes)
+=====================================================================
+
+All free:
+  - Python, FFmpeg       always needed
+  - Streamlink           for Twitch
+  - yt-dlp and Deno      for YouTube (Deno is a helper yt-dlp needs
+                         to read YouTube properly)
+
+Install all five even if you only plan to use one site. Then both
+Twitch and YouTube just work.
+
+1. Click Start, type "PowerShell", and open "Windows PowerShell".
+
+2. Copy and paste these one at a time, pressing Enter after each.
+   Say "Y" / yes if it asks anything.
+
+      winget install -e --id Python.Python.3.12
+
+      winget install -e --id Gyan.FFmpeg
+
+      winget install -e --id Streamlink.Streamlink
+
+      winget install -e --id yt-dlp.yt-dlp
+
+      winget install -e --id DenoLand.Deno
+
+3. IMPORTANT: close PowerShell completely and open a new one.
+   (New programs only show up in new windows.)
+
+4. Check that everything installed. Each of these should print a
+   version number, not an error:
+
+      python --version
+      ffmpeg -version
+      streamlink --version
+      yt-dlp --version
+      deno --version
+
+   YouTube changes its site often. If YouTube stops working one day,
+   update yt-dlp first (this fixes it most of the time):
+
+      winget upgrade yt-dlp.yt-dlp
+
+   If "python" opens the Microsoft Store instead: go to Start > Settings
+   > Apps > Advanced app settings > App execution aliases, turn OFF
+   "python.exe" and "python3.exe", then open a new PowerShell.
+
+   If "winget" isn't found: install "App Installer" from the Microsoft
+   Store, then try again.
+
+
+=====================================================================
+  PART 3 - CHOOSE WHICH STREAMERS TO WATCH
+=====================================================================
+
+1. Open channels.txt (double-click it and it opens in Notepad).
+2. Put one streamer per line. You can mix Twitch and YouTube:
+
+   TWITCH: type the name, which is the part after twitch.tv/ in their
+   link. For twitch.tv/xqc the name is xqc.
+
+      xqc
+      kaicenat
+
+   YOUTUBE: paste the streamer's channel link. Go to their channel
+   page and copy the address from the top of the browser.
+
+      https://www.youtube.com/@SomeStreamer
+      https://www.youtube.com/@AnotherOne/live
+
+   Use the CHANNEL link (with the @name), not a link to one video.
+   A channel link keeps working every time they go live. A video
+   link only works for that one stream.
+
+3. Lines starting with # are ignored, so you can "turn off" a
+   streamer without deleting them:
+
+      # caseoh_
+
+4. Save the file.
+
+All channels run together in ONE window, and every line starts with
+the channel it's about. Each channel waits for that streamer to go
+live, clips the stream, then waits again after they go offline. So you
+can list streamers who aren't live yet. If one channel has a problem,
+the others keep going, and it restarts itself after 30 seconds.
+
+Tip: start with 1-3 channels. Every channel records video the whole
+time it's live, which uses internet bandwidth and some CPU.
+
+
+=====================================================================
+  PART 4 - TEST IT (do this once before an overnight run)
+=====================================================================
+
+Pick a streamer who is LIVE RIGHT NOW with an active chat. Open
+PowerShell in the folder:
+
+      cd C:\clip-watcher
+      python clipwatcher.py CHANNELNAME --threshold 1.5 --min-msgs 3
+
+or for YouTube (keep the quotes):
+
+      python clipwatcher.py "https://www.youtube.com/@Name/live" --threshold 1.5 --min-msgs 3
+
+(--threshold 1.5 makes it clip much more easily, just for the test.)
+Test BOTH a Twitch and a YouTube streamer if you plan to use both.
+
+You should see:
+      Chat connected to #channelname (read-only).
+        (YouTube says: Chat connected to YouTube Name (read-only).)
+      LIVE! Recording started. Clips will be cut whenever chat spikes.
+then within a few minutes:
+      SPIKE! 25 msgs in 10s (normal is 7.0, 4x) | chat: kekw x12, ...
+        cutting clips... (waiting ~25s for the footage after the moment)
+        sound: LOUD (+12 dB) at 03:15:37, lining the clip up with that moment.
+      CLIP SAVED 03:15:37 [TOP] chat 4x, sound LOUD (+12 dB): 45s (9 MB) -> ...
+
+Open clips\CHANNELNAME\ and play a clip. Check it has picture AND sound.
+Press Ctrl+C to stop.
+
+If you see an error, copy the whole message and send it to Claude.
+
+
+WHAT THE MESSAGES MEAN
+----------------------
+  Waiting for ... to go live   Streamer is offline. It checks every 30s.
+  Chat connected               It's reading chat. (No login needed.)
+  LIVE! Recording started      The stream is being recorded.
+  STATUS | LIVE for 2h 05m | chat 340 msgs/min | 6 moments clipped
+                               Printed every 2 minutes per channel, so
+                               you can see it's still working. "chat
+                               msgs/min" shows how busy chat is.
+  Sound: audio detected        It's listening to the stream's sound too.
+                               It needs ~2 min to learn the normal volume.
+  SPIKE!                       Chat suddenly got much busier. A clip is
+                               being made.
+  sound: LOUD ... lining the clip up
+                               The stream got loud just before chat
+                               reacted (a scream, laugh, explosion...).
+                               The clip is moved so it's built around
+                               that exact moment instead of the chat
+                               reaction, which comes a few seconds late.
+  sound: quiet, using chat timing
+                               Nothing loud happened, so the clip uses
+                               chat's timing like before.
+  SOUND SPIKE!                 Only with --audio-trigger (Part 7): a very
+                               loud moment that chat didn't react to.
+  CLIP SAVED [TOP]             The clips are in the folder shown. The
+                               rating says how good the moment probably
+                               is (see Part 6).
+  Stream ended or dropped      The streamer went offline. It waits for
+                               them to come back on its own.
+
+When you press Ctrl+C, it prints how many moments were clipped for
+each channel.
+
+
+=====================================================================
+  PART 5 - RUN IT OVERNIGHT
+=====================================================================
+
+1. Stop the PC from sleeping (the screen can still turn off):
+   Start > Settings > System > Power (& battery) > Screen and sleep
+   > "When plugged in, put my device to sleep after" > Never
+
+2. Start it, ANY of these ways (they all do the same thing: watch
+   everyone in channels.txt in one window):
+     - double-click start-all.bat
+     - double-click clipwatcher.py
+     - in PowerShell, inside the folder:   python clipwatcher.py
+     - the Run button in an editor like VS Code
+   Leave the window open. Minimizing it is fine.
+
+3. To stop: click the window and press Ctrl+C, or just close it.
+
+To watch just ONE channel instead of the whole list, put it after the
+command:   python clipwatcher.py xqc
+or double-click start-one.bat.
+
+Don't let Windows Update restart the PC overnight: Settings >
+Windows Update > Pause updates (or set "Active hours" to cover the night).
+
+
+=====================================================================
+  PART 6 - FINDING YOUR CLIPS THE NEXT DAY
+=====================================================================
+
+Everything is in the "clips" folder, one folder per streamer:
+
+  clips\
+    xqc\
+      2026-11-16\
+        031542_45s.mp4     <- one 45-second clip
+        031542_credit.txt  <- streamer link + what chat was saying
+      clips.csv            <- list of every clip (opens in Excel)
+      chat.log             <- full chat history
+      _buffer\             <- scratch recording, ignore it
+    youtube-SomeStreamer\  <- YouTube channels get "youtube-" in front
+      ...same layout...
+
+The file name is the time of the moment (031542 = 3:15:42 AM).
+
+CLIPS ARE NEVER DELETED. Only the _buffer folder cleans itself up
+(it keeps just the last 10 minutes of raw video). Clips stay until you
+delete them yourself.
+
+EVERY CLIP GETS A RATING, based on how hard chat AND the stream's sound
+reacted:
+  TOP   chat exploded AND it got loud, or one of them was huge.
+        Post these first.
+  GOOD  chat spiked and it got loud, OR chat spiked a lot during a
+        quiet moment (a calm joke can still be great).
+  OK    smaller reaction. Worth a quick look.
+
+Best way to pick clips: open clips.csv in Excel and sort by the
+"rating" column (TOP first), then by "chat_ratio" (biggest first).
+Ratio 10 means chat was 10x busier than normal. The rating is also
+written in each clip's credit.txt and in the CLIP SAVED message.
+
+(If you used an older version, its list was kept as clips_old.csv.)
+
+POSTING RULE: always credit and link the streamer. The credit.txt next
+to every clip has the link ready to copy.
+
+
+=====================================================================
+  PART 7 - SETTINGS (optional)
+=====================================================================
+
+Open start-all.bat (and start-one.bat) in Notepad (right-click > Edit).
+Near the top is:
+
+      set OPTIONS=--lengths 45
+
+Add any of these to that line, separated by spaces:
+
+  --lengths 45          Clip length in seconds. Default: 45
+  --threshold 2         How much busier than normal chat has to get.
+                        Default: 2. Too many boring clips? Try 3 or 4.
+  --min-msgs 5          Minimum messages in 10 seconds to count.
+                        Default: 5. Huge chats (20k+ viewers): try 30+.
+  --cooldown 60         Minimum seconds between two clips.
+  --after 15            Seconds of video kept after the moment.
+  --quality 720p60      Lower quality = smaller files, less CPU.
+                        Default: best
+  --buffer-minutes 0    Also keep the FULL raw stream (not just clips).
+                        Warning: about 3-6 GB per hour of stream.
+  --status-minutes 2    How often each channel prints a STATUS line.
+
+SOUND SETTINGS (sound is on automatically, these are all optional):
+  --audio-trigger       Also make clips from very loud moments that
+                        chat didn't react to. Great for small
+                        streamers with quiet chats. Off by default
+                        because loud games (shooters, horror) would
+                        trigger it a lot.
+  --audio-trigger-db 14 How loud a sound-only clip must be. Too many
+                        sound clips? Try 18. Too few? Try 11.
+  --skip-quiet          Skip chat spikes when the stream stayed quiet.
+                        Filters out chat spam (giveaways, "!drop"
+                        commands) but might skip a calm funny moment.
+  --audio-boost 8       How much louder than normal counts as "LOUD"
+                        (in dB). Lower = more clips get lined up with
+                        a sound. Higher = only really big sounds.
+  --audio-lookback 20   How many seconds before chat reacted to look
+                        for the loud moment.
+  --no-audio            Ignore sound completely (chat only).
+
+Example for a small streamer, also catching loud moments:
+      set OPTIONS=--lengths 45 --min-msgs 3 --audio-trigger
+
+Running without the .bat file? Put the settings after the command:
+      python clipwatcher.py --threshold 4 --min-msgs 30
+
+Example for big streamers, fewer but better clips:
+      set OPTIONS=--lengths 45 --threshold 4 --min-msgs 30
+
+
+=====================================================================
+  PART 8 - CAPTIONS (optional, extra setup)
+=====================================================================
+
+This makes an extra copy of each clip with subtitles burned in
+(e.g. 031542_45s_captioned.mp4) plus a .srt subtitle file.
+
+1. Go to https://github.com/ggml-org/whisper.cpp/releases
+   Under the newest release, open "Assets" and download
+   whisper-bin-x64.zip
+2. Unzip it. Make a folder C:\clip-watcher\whisper and put all the
+   unzipped files directly inside it, so this file exists:
+      C:\clip-watcher\whisper\whisper-cli.exe
+   (If the zip has a "Release" folder inside, move its contents up.)
+3. Go to https://huggingface.co/ggerganov/whisper.cpp/tree/main
+   and download ggml-small.en.bin (about 470 MB).
+4. Make a folder C:\clip-watcher\models and put the file in it.
+5. In start-all.bat, change the OPTIONS line to:
+      set OPTIONS=--lengths 45 --captions --whisper-bin whisper\whisper-cli.exe --whisper-model models\ggml-small.en.bin
+
+Use "small.en" rather than "medium.en": medium is much slower on a
+normal CPU and can fall behind on busy nights. Captions run in the
+background, so the plain clips are always saved first.
+
+
+=====================================================================
+  PART 9 - AI HIGHLIGHT DETECTION (optional, advanced)
+=====================================================================
+
+This adds AI-powered highlight detection that finds moments chat alone
+might miss: funny streamer quotes, visual highlights (kills, wins,
+reactions), and sentiment shifts. It runs alongside the existing chat
+spike and sound detection.
+
+WHAT YOU NEED
+-------------
+
+| Feature               | Runs Where?      | API Key Needed? |
+|-----------------------|------------------|-----------------|
+| Audio (Whisper)       | Your PC (GPU/CPU)| No              |
+| Chat Sentiment        | Your PC (CPU)    | No              |
+| Visual (GPT-4V)       | OpenAI's servers | YES (OpenAI)    |
+
+**Bottom line**: You ONLY need an API key if you want visual analysis
+(--ai-visual). Audio and chat AI run 100% locally on your machine.
+
+---
+
+HOW TO GET AN OPENAI API KEY (for --ai-visual only)
+----------------------------------------------------
+
+1. Open your browser and go to:  https://platform.openai.com/api-keys
+2. Sign in to your OpenAI account (or create one — it's free to sign up)
+3. Click the green button: **Create new secret key**
+4. Name it something like "ClipWatcher Vision"
+5. **COPY THE KEY IMMEDIATELY** — it starts with `sk-` and looks like:
+   `sk-proj-abc123...` or `sk-abc123...`
+   You will NOT be able to see it again after you close the dialog.
+6. Save it somewhere safe (Notepad, password manager, etc.)
+7. **Billing**: Go to Settings → Billing → Add payment method.
+   Vision uses GPT-4o-mini (~$0.15 per 1M input tokens).
+   At 1 frame every 5 seconds = ~17,000 frames/hour ≈ **$0.03–0.05/hour**.
+   Set a monthly budget limit in Settings → Billing → Limits if you want.
+
+---
+
+INSTALL AI DEPENDENCIES
+-----------------------
+
+1. Open PowerShell in the clip-watcher folder
+2. Run:
+      pip install -r requirements-ai.txt
+
+   (First run downloads ~1–3 GB of models. They're cached for later runs.)
+
+   **Requirements installed** (from requirements-ai.txt):
+     - torch, torchaudio         (PyTorch for Whisper)
+     - openai-whisper            (Local speech-to-text)
+     - openai                    (Only needed for --ai-visual)
+     - transformers, accelerate  (Chat sentiment model)
+     - sentencepiece             (Tokenizer for sentiment)
+
+   **GPU strongly recommended** for speed.
+   - NVIDIA: CUDA will be auto-detected
+   - Apple Silicon: MPS will be auto-detected
+   - CPU works but Whisper transcription will be slower
+
+---
+
+USAGE EXAMPLES
+--------------
+
+# Basic AI: audio + chat sentiment (NO API key needed)
+python clipwatcher.py xqc --ai --threshold 1.5 --min-msgs 3
+
+# Full AI with vision (needs OpenAI API key from above)
+python clipwatcher.py xqc --ai --ai-visual --ai-vision-key sk-YOUR_KEY_HERE --threshold 1.5
+
+# Customize: smaller Whisper model, use GPU
+python clipwatcher.py xqc --ai --ai-whisper-model small --ai-device cuda
+
+# Add to start-all.bat for overnight runs:
+# Open start-all.bat in Notepad and change the OPTIONS line to:
+# set OPTIONS=--lengths 45 --ai --ai-visual --ai-vision-key sk-YOUR_KEY_HERE --threshold 2 --min-msgs 5
+
+---
+
+WHAT EACH AI ANALYZER DOES
+--------------------------
+
+--ai-audio  (ON by default with --ai)
+  Runs Whisper on every 10-second segment. Detects:
+  - Hype keywords: pog, insane, let's go, clutch, cracked, etc.
+  - Laughter: haha, lol, lmao, rofl, laughing emojis
+  - Audio energy spikes (sudden loudness)
+  Output example: "AI Score: 7.2/10 (audio_ai:2.1, chat_ai:1.8, ...)"
+
+--ai-chat   (ON by default with --ai)
+  Runs sentiment analysis on chat messages. Detects:
+  - Chat velocity spikes (messages/second)
+  - Positive sentiment bursts
+  - Emote density (Kappa, PogU, KEKW, etc.)
+  - Clip request keywords: "clip it", "clippable", "timestamp", "clip that"
+
+--ai-visual  (OFF by default, NEEDS --ai-vision-key)
+  Sends 1 frame every N seconds to GPT-4V (OpenAI). Detects:
+  - Big plays, kills, clutch moments in games
+  - Funny reactions, surprised faces
+  - Visual gags, glitches, weird moments
+  - Victory screens, achievements, rank ups
+
+---
+
+AI SCORING (How clips are triggered)
+------------------------------------
+
+The AI analyzers feed into a "Fusion Scorer" that combines all signals
+into a **0–10 score**. Weights:
+
+  Audio AI (Whisper)        30%
+  Visual AI (GPT-4V)        30%
+  Chat AI (Sentiment)       25%
+  Audio Loudness (RMS)      10%
+  Chat Spike (Statistical)   5%
+
+When the **fusion score >= --ai-threshold** (default 6.5) and not on
+cooldown (--cooldown, default 60s), a clip is created automatically.
+
+---
+
+AI CLIPS GET ENHANCED METADATA
+------------------------------
+
+- Smart title: "[Epic Quote, Visual Highlight] StreamerName"
+- AI description with score breakdown bars in credit.txt
+- _meta.json file per clip (full AI analysis: transcript, vision response,
+  sentiment scores, fusion breakdown)
+- Updated clips.csv with "ai" trigger type and ai_score column
+- Audio AI writes transcript snippets to chat.log with [AI] prefix
+
+---
+
+CHOOSING A WHISPER MODEL (--ai-whisper-model)
+---------------------------------------------
+
+| Model  | Speed (CPU) | Speed (GPU) | Accuracy | VRAM (GPU) | Best For          |
+|--------|-------------|-------------|----------|------------|-------------------|
+| tiny   | ~5x realtime| ~50x        | Low      | ~1 GB      | Testing only      |
+| base   | ~3x realtime| ~30x        | Good     | ~1 GB      | **Default, balanced** |
+| small  | ~2x realtime| ~20x        | Better   | ~2 GB      | Better accuracy   |
+| medium | ~1x realtime| ~10x        | Best     | ~5 GB      | High accuracy     |
+| large  | ~0.5x realtime| ~5x       | Best     | ~10 GB     | Maximum accuracy  |
+
+**Recommendation**: Start with `base` (default). If you have a GPU with
+6+ GB VRAM, `small` is a great upgrade. `medium`/`large` only if you
+have the VRAM and need maximum accuracy.
+
+---
+
+TIPS & TUNING
+-------------
+
+- **Start with --ai only (no --ai-visual)** to test. No API costs,
+  runs fully local.
+- **Lower --ai-threshold** (e.g., 5.0) for more clips; raise (e.g., 8.0)
+  for fewer, higher-quality clips.
+- **Adjust --ai-check-interval**: lower = more responsive but more
+  CPU/GPU (default 30 seconds).
+- **Vision interval**: --ai-vision-interval 10 = fewer API calls;
+  --ai-vision-interval 3 = more responsive but more cost.
+- **GPU makes Whisper much faster** — use --ai-device cuda (NVIDIA) or
+  --ai-device mps (Apple Silicon).
+- **Watch the first hour** and note which clips are good/bad, then tune
+  the threshold.
+- **Cost control**: Set a monthly budget in OpenAI dashboard
+  (Settings → Billing → Limits).
+
+---
+
+TROUBLESHOOTING AI
+------------------
+
+"ImportError: torch" / "ImportError: transformers"
+    Run: pip install -r requirements-ai.txt
+
+"CUDA out of memory"
+    Use --ai-whisper-model base or --ai-device cpu
+
+"openai.AuthenticationError" or "Invalid API key"
+    Check your API key is correct (starts with sk-) and you have credits
+    in your OpenAI account (Settings → Billing).
+
+"Rate limit exceeded" (OpenAI)
+    Increase --ai-vision-interval (e.g., 10 or 15) or lower
+    --ai-check-interval.
+
+Whisper very slow on CPU
+    Use --ai-whisper-model tiny or get a GPU.
+
+No AI clips at all
+    Lower --ai-threshold to 5.0. Check logs for "AI Score:" lines to
+    see what scores you're getting.
+
+Too many AI clips / low quality
+    Raise --ai-threshold to 7.5–8.0.
+
+=====================================================================
+  TROUBLESHOOTING
+=====================================================================
+
+"Missing on PATH: ffmpeg" (or streamlink, or yt-dlp)
+    Part 2 didn't finish, or you didn't open a NEW window afterwards.
+
+Stuck on "Waiting for ... to go live"
+    The streamer is offline, or the name or link is wrong.
+    Open the link it shows in your browser to check.
+    YouTube streamer IS live but it keeps waiting? Update yt-dlp:
+        winget upgrade yt-dlp.yt-dlp
+    and check Deno is installed (deno --version). To see the real
+    error, run this and send the output to Claude:
+        yt-dlp -F "https://www.youtube.com/@Name/live"
+
+"Couldn't understand that YouTube link"
+    Use the channel link, like https://www.youtube.com/@Name/live
+
+"SPIKE ... (stream not recording, skipped)"
+    Chat spiked before the video started recording. Normal in the
+    first minute, or if the stream is offline.
+
+Lots of clips of nothing
+    Raise --threshold or --min-msgs (Part 7). If they're chat spam
+    during quiet moments, add --skip-quiet. If they're "SOUND SPIKE"
+    clips, raise --audio-trigger-db or remove --audio-trigger.
+
+"Sound: no audio found in this stream"
+    Rare. Sound features switch off for that stream and clips use
+    chat timing only, so it keeps working.
+
+No clips at all after hours
+    Check the window for SPIKE lines. If there are none, lower
+    --threshold to 2.5 or --min-msgs to 4.
+
+Clips start a bit early or late
+    Change --after. Higher = the clip includes more AFTER the moment.
+    Clips that say "lining the clip up" are timed from the sound and
+    are usually spot on. If those feel off, try --audio-boost 12 so
+    only big sounds move the clip.
+
+Disk filling up
+    Only clips are kept, so check you didn't set --buffer-minutes 0.
+    1 minute of 1080p60 is roughly 50-100 MB.
+
+Notes:
+  - It only clips while the streamer is live, from the moment it's running.
+    It can't clip past broadcasts or VODs.
+  - No Twitch or YouTube account or login is needed. It reads chat
+    anonymously and never posts anything.
+  - YouTube chat arrives in small batches every few seconds, so
+    YouTube spikes can be a little less precise than Twitch. If
+    YouTube clips feel a bit early or late, adjust --after.

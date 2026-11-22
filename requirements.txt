@@ -1,0 +1,5 @@
+# ClipWatcher Core Dependencies
+# The core program uses ONLY Python standard library — no external dependencies required.
+#
+# Optional AI dependencies are in requirements-ai.txt
+# Install with: pip install -r requirements-ai.txt

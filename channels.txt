@@ -1,0 +1,13 @@
+# One streamer per line. Lines starting with # are ignored.
+# Remove the # in front of a line to turn that channel on.
+#
+# TWITCH: just the name after twitch.tv/
+# YOUTUBE: the channel's link. Adding /live is fine but not needed.
+#
+# AI HIGHLIGHTS: Run with --ai to enable AI detection (Whisper + Chat sentiment).
+# Add --ai-visual --ai-vision-key YOUR_KEY for GPT-4V visual analysis.
+# See SETUP GUIDE.txt Part 9 for details.
+#
+# Example channels (uncomment to use):
+# xqc
+# https://www.youtube.com/@GoogleDevelopers

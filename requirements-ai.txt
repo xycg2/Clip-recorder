@@ -1,0 +1,22 @@
+# AI dependencies for intelligent clip detection
+# Install with: pip install -r requirements-ai.txt
+
+# Core ML
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+
+# Whisper for audio transcription
+openai-whisper>=20231117
+
+# Vision analysis (OpenAI GPT-4V)
+openai>=1.0.0
+
+# Chat sentiment analysis
+transformers>=4.35.0
+accelerate>=0.24.0
+sentencepiece>=0.1.99
+
+# Optional: Local vision models (uncomment to use)
+# llava-python>=0.1.0
+# moondream>=0.1.0
